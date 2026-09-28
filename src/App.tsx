@@ -18,9 +18,16 @@ import { DecryptModal } from './components/modals/DecryptModal';
 import { DocumentDetailModal } from './components/modals/DocumentDetailModal';
 import { WatermarkInspectorModal } from './components/modals/WatermarkInspectorModal';
 import { DemoTourModal } from './components/modals/DemoTourModal';
+import { DocumentScannerModal } from './components/modals/DocumentScannerModal';
 
 const AppContent: React.FC = () => {
-  const { activeView } = useApp();
+  const {
+    activeView,
+    isScannerOpen,
+    scannerTargetPurpose,
+    closeScannerModal,
+    handleScannerResult
+  } = useApp();
 
   const renderActiveView = () => {
     switch (activeView) {
@@ -71,6 +78,12 @@ const AppContent: React.FC = () => {
       <DocumentDetailModal />
       <WatermarkInspectorModal />
       <DemoTourModal />
+      <DocumentScannerModal
+        isOpen={isScannerOpen}
+        targetPurpose={scannerTargetPurpose}
+        onClose={closeScannerModal}
+        onApplyResult={handleScannerResult}
+      />
     </div>
   );
 };

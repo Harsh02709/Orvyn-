@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { RecipientType, ClassificationLevel } from '../../types';
 import {
@@ -14,12 +14,28 @@ import {
   ArrowRight,
   Lock,
   Layers,
-  Sparkles
+  Sparkles,
+  Camera,
+  Upload,
+  RefreshCw,
+  FileUp
 } from 'lucide-react';
 import { calculateSha256, truncateHash } from '../../utils/crypto';
+import { processUploadedFile } from '../../utils/documentScanner';
 
 export const DistributeView: React.FC = () => {
-  const { recipients, distributeDocument, setActiveView, openDecryptModal } = useApp();
+  const {
+    recipients,
+    distributeDocument,
+    setActiveView,
+    openDecryptModal,
+    openScannerModal,
+    importedDocumentDraft,
+    setImportedDocumentDraft
+  } = useApp();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState('classified_operation_delta.pdf');
   const [classification, setClassification] = useState<ClassificationLevel>('TOP SECRET');
@@ -46,6 +62,38 @@ Encrypted under sovereign ML-KEM-1024 parameters. Any offline copy extracted or 
   const [calculatedSha256, setCalculatedSha256] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [distributionSuccess, setDistributionSuccess] = useState<string | null>(null);
+  const [uploadedSourceTag, setUploadedSourceTag] = useState<string | null>(null);
+
+  // Consume imported draft if user scanned or uploaded
+  useEffect(() => {
+    if (importedDocumentDraft) {
+      setTitle(importedDocumentDraft.fileName);
+      setClassification(importedDocumentDraft.detectedClassification);
+      setDescription(`Optical ingestion via ${importedDocumentDraft.scanType.replace('_', ' ')}. File size: ${importedDocumentDraft.fileSizeFormatted}.`);
+      setFullText(importedDocumentDraft.extractedText);
+      setUploadedSourceTag(`${importedDocumentDraft.scanType.replace('_', ' ')} (${importedDocumentDraft.fileSizeFormatted})`);
+      setImportedDocumentDraft(null); // clear draft
+    }
+  }, [importedDocumentDraft, setImportedDocumentDraft]);
+
+  const handleNativeFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsProcessing(true);
+    try {
+      const res = await processUploadedFile(file);
+      setTitle(res.fileName);
+      setClassification(res.detectedClassification);
+      setDescription(`Ingested ${file.name} (${res.fileSizeFormatted}). SHA-256 computed.`);
+      setFullText(res.extractedText);
+      setUploadedSourceTag(`Direct Upload: ${file.name} (${res.fileSizeFormatted})`);
+    } catch (err) {
+      console.error('File parsing error', err);
+    } finally {
+      setIsProcessing(false);
+      e.target.value = '';
+    }
+  };
 
   useEffect(() => {
     let isCurrent = true;
@@ -182,8 +230,72 @@ Encrypted under sovereign ML-KEM-1024 parameters. Any offline copy extracted or 
         <form onSubmit={handleDistribute} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left 2 Cols: Document Details & Text */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="p-5 bg-[#090e1a] border border-slate-800 rounded-lg space-y-4">
-              <h2 className="text-sm font-bold font-mono text-slate-200 flex items-center gap-2">
+            <div className="p-4 sm:p-5 bg-[#090e1a] border border-slate-800 rounded-lg space-y-4">
+              {/* Document Ingestion Quick Bar */}
+              <div className="p-3.5 bg-gradient-to-r from-cyan-950/40 via-slate-900 to-slate-900/90 border border-cyan-800/40 rounded-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-600/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold font-mono text-white flex items-center gap-2">
+                      <span>Ingest or Scan Document</span>
+                      <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
+                        OFFLINE
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono">
+                      {uploadedSourceTag ? (
+                        <span className="text-emerald-300 font-semibold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400 inline" />
+                          {uploadedSourceTag}
+                        </span>
+                      ) : (
+                        'Upload real PDF, Word, Text, or take photo with phone camera'
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Hidden inputs for direct mobile 1-tap */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".txt,.pdf,.docx,.doc,.md,.json,.csv,.log,.png,.jpg,.jpeg"
+                    onChange={handleNativeFileUpload}
+                    className="hidden"
+                  />
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleNativeFileUpload}
+                    className="hidden"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => openScannerModal('DISTRIBUTE')}
+                    className="flex-1 sm:flex-none px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs font-mono rounded flex items-center justify-center gap-1.5 transition-all shadow-sm shadow-cyan-600/20"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>Camera Scan</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 sm:flex-none px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-mono rounded flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Upload File</span>
+                  </button>
+                </div>
+              </div>
+
+              <h2 className="text-sm font-bold font-mono text-slate-200 flex items-center gap-2 pt-1">
                 <FileText className="w-4 h-4 text-cyan-400" />
                 Step 1 & 2: Classified Payload & Hash Calculation
               </h2>

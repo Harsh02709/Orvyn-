@@ -10,7 +10,10 @@ import {
   Send,
   CheckCircle2,
   KeyRound,
-  Filter
+  Filter,
+  Camera,
+  Upload,
+  Sparkles
 } from 'lucide-react';
 import { truncateHash } from '../../utils/crypto';
 
@@ -19,7 +22,8 @@ export const DocumentsView: React.FC = () => {
     documents,
     openDecryptModal,
     openDocumentDetail,
-    setActiveView
+    setActiveView,
+    openScannerModal
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,13 +72,21 @@ export const DocumentsView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => openScannerModal('DISTRIBUTE')}
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 font-bold text-xs font-mono rounded transition-colors"
+          >
+            <Camera className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Scan / Upload</span>
+          </button>
+
           <button
             onClick={() => setActiveView('distribute')}
-            className="flex items-center gap-2 px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs font-mono rounded transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs font-mono rounded transition-colors shadow-xs shadow-cyan-600/30"
           >
             <Send className="w-3.5 h-3.5" />
-            <span>Encrypt & Distribute New</span>
+            <span>Encrypt & Distribute</span>
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ForensicReport } from '../../types';
 import {
@@ -15,12 +15,26 @@ import {
   ShieldCheck,
   Download,
   Eye,
-  FileText
+  FileText,
+  Camera,
+  Upload,
+  Sparkles
 } from 'lucide-react';
 import { truncateHash, extractZeroWidthWatermark } from '../../utils/crypto';
+import { processUploadedFile } from '../../utils/documentScanner';
 
 export const ForensicAnalysisView: React.FC = () => {
-  const { runForensicAnalysis, saveForensicReport, setActiveView } = useApp();
+  const {
+    runForensicAnalysis,
+    saveForensicReport,
+    setActiveView,
+    openScannerModal,
+    importedDocumentDraft,
+    setImportedDocumentDraft
+  } = useApp();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [leakedFileName, setLeakedFileName] = useState('classified_operation_leaked.pdf');
   const [leakedContent, setLeakedContent] = useState(`SECURITY OPERATIONS COMMAND
@@ -35,6 +49,34 @@ All tactical units operating under primary command are hereby directed to mainta
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any | null>(null);
   const [reportGenerated, setReportGenerated] = useState<ForensicReport | null>(null);
+  const [ingestionSource, setIngestionSource] = useState<string | null>(null);
+
+  // Consume imported draft if coming from camera scanner modal
+  useEffect(() => {
+    if (importedDocumentDraft) {
+      setLeakedFileName(importedDocumentDraft.fileName);
+      setLeakedContent(importedDocumentDraft.extractedText);
+      setIngestionSource(`${importedDocumentDraft.scanType.replace('_', ' ')} (${importedDocumentDraft.fileSizeFormatted})`);
+      setImportedDocumentDraft(null);
+    }
+  }, [importedDocumentDraft, setImportedDocumentDraft]);
+
+  const handleNativeFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsAnalyzing(true);
+    try {
+      const res = await processUploadedFile(file);
+      setLeakedFileName(res.fileName);
+      setLeakedContent(res.extractedText);
+      setIngestionSource(`Uploaded: ${res.fileName} (${res.fileSizeFormatted})`);
+    } catch (err) {
+      console.error('File parsing error', err);
+    } finally {
+      setIsAnalyzing(false);
+      e.target.value = '';
+    }
+  };
 
   const handleStartAnalysis = async () => {
     setIsAnalyzing(true);
@@ -111,6 +153,57 @@ CLEARANCE LEVEL: SECRET
                 Input Suspect / Leaked Document
               </span>
               <span className="text-[10px] text-cyan-400">Air-Gapped Inspection</span>
+            </div>
+
+            {/* Ingestion Action Bar */}
+            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-lg space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  Capture / Ingest Leaked Evidence
+                </span>
+                {ingestionSource && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">
+                    {ingestionSource}
+                  </span>
+                )}
+              </div>
+
+              {/* Hidden file inputs */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt,.pdf,.docx,.doc,.md,.json,.csv,.log,.png,.jpg,.jpeg"
+                onChange={handleNativeFileUpload}
+                className="hidden"
+              />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleNativeFileUpload}
+                className="hidden"
+              />
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => openScannerModal('FORENSICS')}
+                  className="py-2 px-2.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded flex items-center justify-center gap-1.5 transition-colors text-[11px]"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Scan with Camera</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="py-2 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded flex items-center justify-center gap-1.5 transition-colors text-[11px]"
+                >
+                  <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Upload File/Pic</span>
+                </button>
+              </div>
             </div>
 
             <div>

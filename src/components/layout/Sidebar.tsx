@@ -15,7 +15,9 @@ import {
   FileCheck2,
   Settings,
   ChevronRight,
-  X
+  X,
+  Camera,
+  Upload
 } from 'lucide-react';
 
 interface NavItem {
@@ -36,7 +38,8 @@ export const Sidebar: React.FC = () => {
     reports,
     ledgerIntegrity,
     isMobileMenuOpen,
-    setIsMobileMenuOpen
+    setIsMobileMenuOpen,
+    openScannerModal
   } = useApp();
 
   const navItems: NavItem[] = [
@@ -97,6 +100,25 @@ export const Sidebar: React.FC = () => {
 
         {/* Navigation Items */}
         <div className="flex-1 overflow-y-auto py-3 px-3 flex flex-col gap-1">
+          {/* Quick Scanner Action */}
+          <div className="px-1 mb-2">
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                openScannerModal('DISTRIBUTE');
+              }}
+              className="w-full py-2.5 px-3 bg-gradient-to-r from-cyan-950/80 to-slate-900 hover:from-cyan-900/80 hover:to-slate-800 border border-cyan-500/40 rounded-lg flex items-center justify-between text-xs font-mono text-cyan-300 font-bold transition-all shadow-sm group"
+            >
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+                <span>Scan / Upload File</span>
+              </div>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-900/60 text-cyan-300 border border-cyan-700/60">
+                OFFLINE
+              </span>
+            </button>
+          </div>
+
           <div className="px-3 pb-2 text-[10px] font-mono uppercase tracking-wider text-slate-500">
             Navigation Modules
           </div>

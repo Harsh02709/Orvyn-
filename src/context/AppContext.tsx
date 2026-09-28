@@ -25,6 +25,7 @@ import {
   computeBlockHash,
   getStandardTimestamp
 } from '../utils/crypto';
+import { ScannedDocumentResult } from '../utils/documentScanner';
 
 export type NavView =
   | 'overview'
@@ -103,6 +104,15 @@ interface AppContextType {
   activeDemoStep: number;
   setActiveDemoStep: (step: number) => void;
 
+  // Document Scanner & Ingestion
+  isScannerOpen: boolean;
+  scannerTargetPurpose: 'DISTRIBUTE' | 'FORENSICS';
+  openScannerModal: (purpose?: 'DISTRIBUTE' | 'FORENSICS') => void;
+  closeScannerModal: () => void;
+  importedDocumentDraft: ScannedDocumentResult | null;
+  setImportedDocumentDraft: (draft: ScannedDocumentResult | null) => void;
+  handleScannerResult: (result: ScannedDocumentResult, destination: 'DISTRIBUTE' | 'FORENSICS' | 'VAULT') => void;
+
   // Mobile navigation
   isMobileMenuOpen: boolean;
   setIsMobileMenuOpen: (open: boolean) => void;
@@ -144,6 +154,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [demoTourOpen, setDemoTourOpen] = useState<boolean>(false);
   const [activeDemoStep, setActiveDemoStep] = useState<number>(1);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+
+  // Document Scanner & Ingestion State
+  const [isScannerOpen, setIsScannerOpen] = useState<boolean>(false);
+  const [scannerTargetPurpose, setScannerTargetPurpose] = useState<'DISTRIBUTE' | 'FORENSICS'>('DISTRIBUTE');
+  const [importedDocumentDraft, setImportedDocumentDraft] = useState<ScannedDocumentResult | null>(null);
+
+  const openScannerModal = (purpose: 'DISTRIBUTE' | 'FORENSICS' = 'DISTRIBUTE') => {
+    setScannerTargetPurpose(purpose);
+    setIsScannerOpen(true);
+  };
+
+  const closeScannerModal = () => {
+    setIsScannerOpen(false);
+  };
+
+  const handleScannerResult = async (
+    result: ScannedDocumentResult,
+    destination: 'DISTRIBUTE' | 'FORENSICS' | 'VAULT'
+  ) => {
+    if (destination === 'DISTRIBUTE') {
+      setImportedDocumentDraft(result);
+      setActiveView('distribute');
+    } else if (destination === 'FORENSICS') {
+      setImportedDocumentDraft(result);
+      setActiveView('forensics');
+    } else if (destination === 'VAULT') {
+      // Direct ingest into Classified Vault
+      const allRecipientIds = recipients.map((r) => r.id);
+      await distributeDocument({
+        title: result.fileName,
+        classification: result.detectedClassification,
+        fileSize: result.fileSizeFormatted,
+        description: `Direct optical ingestion via client enclave sensor. SHA-256: ${result.sha256Hash.slice(0, 16)}...`,
+        fullText: result.extractedText,
+        recipientIds: allRecipientIds.slice(0, 4)
+      });
+      setActiveView('documents');
+    }
+  };
 
   const toggleMobileMenu = () => setIsMobileMenuOpen((prev) => !prev);
 
@@ -543,6 +592,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setDemoTourOpen,
         activeDemoStep,
         setActiveDemoStep,
+        isScannerOpen,
+        scannerTargetPurpose,
+        openScannerModal,
+        closeScannerModal,
+        importedDocumentDraft,
+        setImportedDocumentDraft,
+        handleScannerResult,
         isMobileMenuOpen,
         setIsMobileMenuOpen,
         toggleMobileMenu,

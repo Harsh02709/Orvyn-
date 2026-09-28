@@ -16,7 +16,9 @@ import {
   Cpu,
   Layers,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Camera,
+  Upload
 } from 'lucide-react';
 import { truncateHash } from '../../utils/crypto';
 
@@ -30,6 +32,7 @@ export const OverviewView: React.FC = () => {
     openDecryptModal,
     setDemoTourOpen,
     openWatermarkInspector,
+    openScannerModal,
     ledgerIntegrity
   } = useApp();
 
@@ -62,20 +65,27 @@ export const OverviewView: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 shrink-0">
+            <button
+              onClick={() => openScannerModal('DISTRIBUTE')}
+              className="px-3.5 py-2.5 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-slate-950 font-bold text-xs font-mono rounded flex items-center justify-center gap-1.5 transition-all shadow-md shadow-cyan-600/30"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Scan / Upload</span>
+            </button>
             <button
               onClick={() => setDemoTourOpen(true)}
-              className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs font-mono rounded flex items-center justify-center gap-2 transition-colors shadow-lg shadow-cyan-950/40"
+              className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-cyan-200 border border-slate-700 font-bold text-xs font-mono rounded flex items-center justify-center gap-1.5 transition-colors"
             >
-              <span>RUN 14-STEP WORKFLOW TOUR</span>
-              <ArrowRight className="w-4 h-4" />
+              <span>14-Step Tour</span>
+              <ArrowRight className="w-3.5 h-3.5 text-cyan-400" />
             </button>
             <button
               onClick={() => openDecryptModal()}
-              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs font-mono border border-slate-700 rounded flex items-center justify-center gap-2 transition-colors"
+              className="px-3.5 py-2.5 bg-[#0a1120] hover:bg-slate-800 text-slate-200 font-medium text-xs font-mono border border-slate-700/80 rounded flex items-center justify-center gap-1.5 transition-colors"
             >
               <Lock className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Simulate Decryption</span>
+              <span>Decrypt</span>
             </button>
           </div>
         </div>
